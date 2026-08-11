@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { phraseById } from "@/content/course";
 import { evaluateAnswer } from "@/lib/evaluation/evaluate";
 import { getServerEnv } from "@/lib/env";
+import { isTrustedSpeechOrigin } from "@/lib/speech/origin";
 import { checkRateLimit } from "@/lib/speech/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
@@ -18,6 +19,14 @@ const allowedMime = new Set([
 
 export async function POST(request: Request) {
   const env = getServerEnv();
+  if (
+    !isTrustedSpeechOrigin(
+      request.headers.get("origin"),
+      env.NEXT_PUBLIC_APP_URL,
+      process.env.NODE_ENV === "production",
+    )
+  )
+    return safeError("Speech requests must come from Rumbo.", 403);
   const supabase = await createClient();
   let userId = "demo";
   if (supabase) {
@@ -26,8 +35,7 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser();
     if (!user) return safeError("Authentication required.", 401);
     userId = user.id;
-  } else if (process.env.NODE_ENV === "production")
-    return safeError("Authentication is not configured.", 503);
+  }
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
   if (!checkRateLimit(`${userId}:${ip}`, env.SPEECH_RATE_LIMIT_PER_MINUTE))
