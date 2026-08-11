@@ -15,7 +15,7 @@ self.addEventListener("message", (event) => {
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   skipWaiting: false,
-  clientsClaim: false,
+  clientsClaim: true,
   navigationPreload: true,
   runtimeCaching: defaultCache,
   fallbacks: {
