@@ -1,128 +1,56 @@
 ```
-# Environment variables
+# Dependencies
+node_modules/
+
+# Build artifacts
+dist/
+build/
+target/
+
+# Logs
+*.log
+
+# Environment
 .env
 .env.local
 .env.*
 
-# Dependencies
-node_modules/
-
-# Build outputs
-dist/
-build/
-target/
+# Editors
+.vscode/
+.idea/
 
 # Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.Python
-env/
+*.py.class
 venv/
 .venv/
-.venv.bak/
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
+
+# Coverage
+coverage/
+htmlcov/
 .coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.log
-*.pot
-*.po
-*~
-.pytest_cache/
-.mypy_cache/
-.hypothesis/
-.eggs/
-EGG-INFO/
 
-# Node.js
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-node_modules/
-jspm_packages/
-web_modules/
-*.tsbuildinfo
-.nyc_output
-coverage/
-lib-cov/
-
-# TypeScript
-*.tsbuildinfo
-.next/
-nuxt/dist/
-
-# Supabase
-.supabase/
-
-# VSCode
-.vscode/
-
-# JetBrains IDEs
-.idea/
-
-# macOS
-.DS_Store
-
-# Windows
-Thumbs.db
-ehthumbs.db
-Icon?
-desktop.ini
-
-# Logs
-*.log
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Temporary folders
-tmp/
-temp/
-tmp/**
-temp/**
-
-# Package manager
-.jspm/
-bower_components/
-
-# Testing
-coverage/
-lib-cov/
-*.lcov
-
-# System
-.DS_Store
-Thumbs.db
-
-# Database
-*.db
-*.db-journal
-
-# Backup
-*.bak
+# Temporary files
+*.tmp
 *.swp
 *.swo
 
-# Compression
+# System files
+.DS_Store
+Thumbs.db
+
+# Compressed files
 *.zip
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.7z
-*.rar
 *.gz
+*.tar
+*.tgz
 *.bz2
 *.xz
+*.7z
+*.rar
 *.zst
 *.lz4
 *.lzh
