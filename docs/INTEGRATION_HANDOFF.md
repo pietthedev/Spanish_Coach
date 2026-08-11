@@ -1,79 +1,103 @@
 # Integration Handoff Document
 
 **Project**: Spanish Coach - Days 1-7 Vertical Slice  
-**Date**: 2026-08-10  
-**Version**: 0.1.0  
+**Date**: 2026-08-15  
+**Version**: 0.2.0  
 
 ---
 
 ## Executive Summary
 
-This handoff documents all files created for the Days 1-7 vertical slice of the Spanish Coach application. The implementation is framework-independent where possible, with clear integration points marked for future dependencies.
+This handoff documents all files created for the dependency-light implementation batch of the Spanish Coach application. This batch adds framework-independent domain logic, test fixtures, SQL migrations, and documentation without requiring npm install or compilation.
 
 ---
 
-## Files Created
-
-### Content Layer (`src/content/`)
-
-| File | Purpose | Framework |
-|------|---------|-----------|
-| `types.ts` | Strongly-typed, versioned content model for Course, Phase, Lesson, Phrase, Exercise, Mission, etc. | Framework-independent |
-| `validation.ts` | Dependency-free content validation functions detecting duplicate IDs, missing translations, incorrect dates, etc. | Framework-independent |
-| `days1to7.ts` | Complete Days 1-7 curriculum content including phrases, exercises, and Mission 1: Friendly Arrival state machine | Framework-independent |
+## Files Created (Batch 2)
 
 ### Domain Layer (`src/domain/`)
 
 | File | Purpose | Framework |
 |------|---------|-----------|
-| `evaluation/evaluator.ts` | Forgiving answer evaluator with normalisation, critical-concept protection, semantic matching | Framework-independent |
-| `review/scheduler.ts` | Deterministic spaced-repetition scheduler (later-in-lesson, 1d, 3d, 7d, 14d, 30d) | Framework-independent |
-| `mission/engine.ts` | State machine engine for deterministic mission execution without runtime AI | Framework-independent |
-
-### Data Layer (`src/data/`)
-
-| File | Purpose | Framework |
-|------|---------|-----------|
-| `local/types.ts` | TypeScript types for IndexedDB storage, Dexie-compatible schema definition, user partitioning by Supabase userId | Framework-independent |
-| `sync/outbox.ts` | Idempotent sync outbox with exponential backoff, jitter, deduplication, conflict resolution | Framework-independent |
-
-### API Layer (`src/app/api/speech/`)
-
-| File | Purpose | Framework |
-|------|---------|-----------|
-| `transcribe/route.ts` | Next.js route handler for ElevenLabs speech transcription with security measures | Next.js App Router |
+| `lesson/session.ts` | Complete lesson-session state machine with snapshot restoration, offline support, Day 7 delegation | Framework-independent |
+| `progress/projection.ts` | Pure projection functions deriving progress from immutable events | Framework-independent |
+| `speech/microphone.ts` | Microphone flow contract with state machine, retry limits, offline handling | Framework-independent |
 
 ### Database (`supabase/`)
 
 | File | Purpose |
 |------|---------|
-| `migrations/001_initial_schema.sql` | Complete SQL migrations for profiles, lesson_progress, phrase_mastery, attempts, scenario_runs, progress_events, achievements, favourites, category_readiness, devices with RLS policies |
-| `tests/rls_test_fixtures.sql` | RLS test fixtures demonstrating data isolation between users and event deduplication |
+| `migrations/002_progress_event_ingestion.sql` | Safe Postgres function for atomic event ingestion with deduplication, RLS, server/client timestamps |
 
 ### Scripts (`scripts/`)
 
 | File | Purpose |
 |------|---------|
-| `generate-audio.ts` | Administrative audio generation script with dry-run mode, rate limiting, retry logic |
+| `validate-content.ts` | Dependency-free content integrity checker exiting non-zero on validation failure |
+
+### Service Worker (`src/service-worker/`)
+
+| File | Purpose |
+|------|---------|
+| `sw.ts` | Manual service worker foundation with versioned caching, background sync, update deferral |
 
 ### Tests (`tests/fixtures/`)
 
 | File | Purpose |
 |------|---------|
-| `evaluator.test.ts` | Comprehensive test fixtures for answer evaluator covering exact matches, variants, diacritics, negation, critical substitutions, etc. |
-
-### Configuration
-
-| File | Purpose |
-|------|---------|
-| `.gitignore` | Excludes node_modules, .next, coverage, Playwright output, env files with secrets |
-| `.env.example` | Environment variable names without values |
+| `all.test.ts` | Comprehensive dependency-free test fixtures for all domain modules |
 
 ### Documentation (`docs/`)
 
 | File | Purpose |
 |------|---------|
-| `INTEGRATION_HANDOFF.md` | This document |
+| `ACCEPTANCE_TEST_MATRIX.md` | Maps every requirement to source file, expected behavior, and test coverage |
+| `INTEGRATION_HANDOFF.md` | Updated with new files and integration requirements |
+
+---
+
+## Complete File Inventory
+
+### All Source Files
+
+#### Content Layer (`src/content/`)
+- `types.ts` - Strongly-typed content model
+- `validation.ts` - Content validation functions
+- `days1to7.ts` - Days 1-7 curriculum content
+
+#### Domain Layer (`src/domain/`)
+- `evaluation/evaluator.ts` - Forgiving answer evaluator
+- `review/scheduler.ts` - Spaced repetition scheduler
+- `mission/engine.ts` - Mission state machine engine
+- `lesson/session.ts` - **NEW** Lesson session state machine
+- `progress/projection.ts` - **NEW** Progress projection engine
+- `speech/microphone.ts` - **NEW** Microphone flow contract
+
+#### Data Layer (`src/data/`)
+- `local/types.ts` - IndexedDB storage types
+- `sync/outbox.ts` - Sync outbox with conflict resolution
+
+#### API Layer (`src/app/api/speech/`)
+- `transcribe/route.ts` - Next.js route for ElevenLabs transcription
+
+#### Service Worker (`src/service-worker/`)
+- `sw.ts` - **NEW** Manual service worker foundation
+
+#### Scripts (`scripts/`)
+- `generate-audio.ts` - Audio generation script
+- `validate-content.ts` - **NEW** Content integrity checker
+
+#### Tests (`tests/fixtures/`)
+- `evaluator.test.ts` - Evaluator test fixtures
+- `all.test.ts` - **NEW** Complete test fixtures for all modules
+
+#### Database (`supabase/`)
+- `migrations/001_initial_schema.sql` - Initial schema with RLS
+- `migrations/002_progress_event_ingestion.sql` - **NEW** Event ingestion function
+- `tests/rls_test_fixtures.sql` - RLS test fixtures
+
+#### Documentation (`docs/`)
+- `INTEGRATION_HANDOFF.md` - **UPDATED** Integration handoff
+- `ACCEPTANCE_TEST_MATRIX.md` - **NEW** Acceptance test matrix
 
 ---
 
@@ -81,47 +105,51 @@ This handoff documents all files created for the Days 1-7 vertical slice of the 
 
 ### Framework-Independent Modules (Pure TypeScript)
 
-These modules have NO external dependencies and can be used in any environment:
+These modules have NO external dependencies:
 
-- `src/content/types.ts` - Content model types
-- `src/content/validation.ts` - Content validation logic
-- `src/content/days1to7.ts` - Curriculum content
-- `src/domain/evaluation/evaluator.ts` - Answer evaluation
-- `src/domain/review/scheduler.ts` - Spaced repetition scheduling
-- `src/domain/mission/engine.ts` - Mission state machine
-- `src/data/local/types.ts` - Local storage type definitions
-- `src/data/sync/outbox.ts` - Sync logic (needs fetch/IndexedDB adapter)
-- `tests/fixtures/evaluator.test.ts` - Test fixtures
+- `src/content/types.ts`
+- `src/content/validation.ts`
+- `src/content/days1to7.ts`
+- `src/domain/evaluation/evaluator.ts`
+- `src/domain/review/scheduler.ts`
+- `src/domain/mission/engine.ts`
+- `src/domain/lesson/session.ts` **(NEW)**
+- `src/domain/progress/projection.ts` **(NEW)**
+- `src/domain/speech/microphone.ts` **(NEW)**
+- `src/data/local/types.ts`
+- `src/data/sync/outbox.ts`
+- `tests/fixtures/evaluator.test.ts`
+- `tests/fixtures/all.test.ts` **(NEW)**
+- `scripts/validate-content.ts` **(NEW)**
 
 ### Requires Integration
-
-These modules need external packages or framework setup:
 
 | Module | Required Dependency | Integration Notes |
 |--------|---------------------|-------------------|
 | `src/app/api/speech/transcribe/route.ts` | Next.js, ElevenLabs API | Verify ElevenLabs Scribe v2 API spec |
 | `scripts/generate-audio.ts` | Node.js fs module, ElevenLabs API | Add actual file I/O |
 | `src/data/local/types.ts` | Dexie (optional) | Schema ready for Dexie integration |
+| `src/service-worker/sw.ts` | Serwist (optional) | Can use manual SW or integrate Serwist |
 | `supabase/migrations/*.sql` | Supabase project | Run via Supabase CLI or Dashboard |
 
 ---
 
 ## Future Dependencies Required
 
-The following npm packages will be needed when building the full application:
-
 ```json
 {
   "dependencies": {
-    "dexie": "^4.0.0",           // IndexedDB wrapper
-    "@supabase/supabase-js": "^2.0.0",  // Supabase client
-    "next": "^14.0.0",           // Next.js framework
-    "react": "^18.0.0",          // React
-    "react-dom": "^18.0.0"       // React DOM
+    "dexie": "^4.0.0",
+    "@supabase/supabase-js": "^2.0.0",
+    "next": "^14.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "serwist": "^9.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "ts-node": "^10.0.0"
   }
 }
 ```
@@ -130,7 +158,7 @@ The following npm packages will be needed when building the full application:
 
 ## Imports/Adapters Requiring Integration
 
-### 1. Dexie Adapter (src/data/local/types.ts)
+### 1. Dexie Adapter
 
 The `LocalStorageAdapter` interface is defined but not implemented. When integrating:
 
@@ -153,18 +181,58 @@ class DexieAdapter implements LocalStorageAdapter {
 }
 ```
 
-### 2. ElevenLabs API (src/app/api/speech/transcribe/route.ts)
+### 2. Serwist Integration (Optional)
 
-The `ElevenLabsScribeAdapter` must be verified against official documentation:
+The service worker at `src/service-worker/sw.ts` provides manual implementation. To integrate Serwist:
+
+```bash
+npm install serwist
+```
+
+Create `serwist.config.ts`:
+
+```typescript
+import type { SerwistConfig } from 'serwist';
+
+const config: SerwistConfig = {
+  precaches: [
+    { url: '/', revision: '1' },
+    { url: '/index.html', revision: '1' },
+  ],
+  runtimeCaching: [
+    {
+      matcher: ({ url }) => url.pathname.startsWith('/api/content/'),
+      handler: 'CacheFirst',
+    },
+    {
+      matcher: ({ url }) => url.pathname.match(/\/audio\/day[1-7]\//),
+      handler: 'CacheFirst',
+    },
+    {
+      matcher: ({ url }) => 
+        url.pathname.startsWith('/api/speech/') ||
+        url.pathname.startsWith('/api/user/') ||
+        url.pathname.startsWith('/api/progress/'),
+      handler: 'NetworkOnly',
+    },
+  ],
+};
+
+export default config;
+```
+
+### 3. ElevenLabs API
+
+Verify against official documentation:
 
 - Confirm endpoint URL
 - Verify request body format
 - Check response structure
 - Validate authentication method
 
-### 3. Authentication (src/app/api/speech/transcribe/route.ts)
+### 4. Authentication
 
-The `extractUserIdFromToken` function needs implementation based on your auth solution:
+Implement `extractUserIdFromToken` based on your auth solution:
 
 ```typescript
 import { createServerClient } from '@supabase/ssr';
@@ -176,7 +244,7 @@ async function extractUserIdFromToken(authHeader: string): Promise<string | null
 }
 ```
 
-### 4. Rate Limiting (src/app/api/speech/transcribe/route.ts)
+### 5. Rate Limiting
 
 Integrate with @vercel/kv or similar:
 
@@ -202,12 +270,19 @@ async function checkRateLimit(userId: string) {
 - [x] No circular dependencies introduced
 - [x] All exported symbols are properly typed
 - [x] Content model includes all required fields per blueprint
+- [x] SQL migration has proper SECURITY DEFINER and error handling
+- [x] Test fixtures use fixed IDs and dates for determinism
 
 ### Fixture-Based Checks Completed ✓
 
 - [x] Evaluator test fixtures cover all required scenarios
 - [x] RLS test fixtures demonstrate data isolation
 - [x] Sync outbox has deterministic behavior specifications
+- [x] Lesson session fixtures cover all phases
+- [x] Progress projection fixtures cover all event types
+- [x] Travel points fixtures verify point calculations
+- [x] Content validation fixtures check all integrity rules
+- [x] Day 7 mission fixtures cover success/failure branches
 
 ### Checks That Could NOT Run (No Dependencies)
 
@@ -216,6 +291,8 @@ async function checkRateLimit(userId: string) {
 - [ ] Next.js route validation (no Next.js installed)
 - [ ] SQL migration execution (no database connection)
 - [ ] Audio generation script execution (no Node.js runtime)
+- [ ] Service worker registration (no browser environment)
+- [ ] Content validation script execution (no ts-node)
 
 ### External Services NOT Tested
 
@@ -242,10 +319,13 @@ cp .env.example .env.local
 # 3. Run TypeScript check
 npx tsc --noEmit
 
-# 4. Run evaluator tests
-npx ts-node tests/fixtures/evaluator.test.ts
+# 4. Run all test fixtures
+npx ts-node tests/fixtures/all.test.ts
 
-# 5. Run audio generation dry-run
+# 5. Run content validation
+npx ts-node scripts/validate-content.ts
+
+# 6. Run audio generation dry-run
 ELEVENLABS_API_KEY=test npm run generate-audio -- --dry-run
 ```
 
@@ -260,6 +340,9 @@ npx supabase db push
 
 # 3. Test RLS policies
 # Open Supabase SQL Editor and run supabase/tests/rls_test_fixtures.sql
+
+# 4. Test event ingestion function
+# Run test fixtures from supabase/migrations/002_progress_event_ingestion.sql
 ```
 
 ### Vercel Deployment
@@ -272,6 +355,58 @@ npx supabase db push
    - `ELEVENLABS_MEXICAN_FEMALE_VOICE_ID`
    - `ELEVENLABS_MEXICAN_MALE_VOICE_ID`
 3. Deploy
+
+---
+
+## Remaining Work
+
+### Next.js UI Work
+
+- [ ] Create lesson player component
+- [ ] Create review queue component
+- [ ] Create progress dashboard component
+- [ ] Create achievement display component
+- [ ] Create microphone recording UI component
+- [ ] Create scenario roleplay UI component
+- [ ] Create mission completion UI component
+
+### Dexie Adapter Work
+
+- [ ] Implement `DexieAdapter` class
+- [ ] Wire up to `LocalStorageAdapter` interface
+- [ ] Test IndexedDB operations
+- [ ] Add migration support for schema updates
+
+### Supabase Client Integration
+
+- [ ] Create Supabase client wrapper
+- [ ] Implement `ingest_progress_event` RPC call
+- [ ] Add event polling for sync
+- [ ] Test RLS policies with actual users
+
+### Serwist Integration
+
+- [ ] Install Serwist package
+- [ ] Create Serwist configuration
+- [ ] Register service worker in app
+- [ ] Test offline caching
+- [ ] Test update deferral mechanism
+
+### ElevenLabs Verification
+
+- [ ] Verify Scribe v2 API endpoint
+- [ ] Test speech-to-text accuracy
+- [ ] Configure voice IDs
+- [ ] Test rate limiting
+- [ ] Add fallback for unavailable service
+
+### Vercel Deployment Work
+
+- [ ] Configure Vercel project
+- [ ] Set up environment variables
+- [ ] Test production build
+- [ ] Configure custom domain
+- [ ] Set up monitoring/alerts
 
 ---
 
@@ -289,13 +424,13 @@ npx supabase db push
 
 6. **No UI Components**: This implementation covers backend/domain logic only. UI components must be created separately.
 
-7. **Service Worker Not Implemented**: PWA/offline functionality is specified but service worker code not written.
+7. **Service Worker Not Tested**: Manual service worker implementation requires browser testing.
 
 ---
 
 ## Assumptions Made
 
-1. **Disk Space**: Kept implementation minimal to fit ~504MB constraint.
+1. **Disk Space**: Kept implementation minimal to fit constraint.
 
 2. **No npm install**: Did not attempt to install any packages.
 
@@ -317,6 +452,22 @@ npx supabase db push
 - ✅ Event UUID deduplication prevents replay attacks
 - ✅ User data partitioned by auth.uid()
 - ✅ No secrets in logs
+- ✅ SECURITY DEFINER function for event ingestion
+- ✅ Service worker excludes authenticated APIs from caching
+
+---
+
+## Quality Checks Completed
+
+- [x] Inspected existing code rather than duplicating types
+- [x] Reused existing event, mission, evaluator and scheduler models
+- [x] Searched for conflicting duplicate type definitions (none found)
+- [x] Searched for empty files, vague TODOs and fabricated credentials (none found)
+- [x] Confirmed no generated dependencies or build artefacts added
+- [x] Confirmed no lesson content beyond Day 7 was added
+- [x] Confirmed every test fixture has deterministic inputs and expected outputs
+- [x] Provided exact inventory of created and changed files
+- [x] Stated honestly that compilation and runtime testing were not performed
 
 ---
 
