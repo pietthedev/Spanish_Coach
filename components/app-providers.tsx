@@ -94,6 +94,18 @@ function ServiceWorkerStatus() {
   const [waiting, setWaiting] = useState<ServiceWorkerRegistration | null>(
     null,
   );
+  const [lessonActive, setLessonActive] = useState(false);
+  const [applying, setApplying] = useState(false);
+  useEffect(() => {
+    const readLessonState = () =>
+      setLessonActive(document.body.dataset.lessonActive === "true");
+    const onLessonActivity = (event: Event) =>
+      setLessonActive((event as CustomEvent<boolean>).detail);
+    readLessonState();
+    window.addEventListener("rumbo-lesson-activity", onLessonActivity);
+    return () =>
+      window.removeEventListener("rumbo-lesson-activity", onLessonActivity);
+  }, []);
   useEffect(() => {
     if (
       !("serviceWorker" in navigator) ||
@@ -111,9 +123,23 @@ function ServiceWorkerStatus() {
   }, []);
   if (!waiting) return null;
   const apply = () => {
-    if (document.body.dataset.lessonActive === "true") return;
-    waiting.waiting?.postMessage({ type: "SKIP_WAITING" });
-    window.location.reload();
+    const worker = waiting.waiting;
+    if (lessonActive || applying || !worker) return;
+    setApplying(true);
+    let reloading = false;
+    const reload = () => {
+      if (reloading) return;
+      reloading = true;
+      setWaiting(null);
+      window.location.reload();
+    };
+    navigator.serviceWorker.addEventListener("controllerchange", reload, {
+      once: true,
+    });
+    worker.addEventListener("statechange", () => {
+      if (worker.state === "activated") reload();
+    });
+    worker.postMessage({ type: "SKIP_WAITING" });
   };
   return (
     <aside
@@ -122,14 +148,18 @@ function ServiceWorkerStatus() {
     >
       <p className="font-semibold">A safe update is ready</p>
       <p className="mt-1 text-sm text-white/80">
-        Finish any active lesson first.
+        {lessonActive
+          ? "Finish or exit the active lesson first."
+          : applying
+            ? "Installing the update…"
+            : "Ready to install without losing lesson progress."}
       </p>
       <button
         className="tap-target bg-marigold text-ink mt-3 rounded-xl px-4 font-bold disabled:opacity-50"
         onClick={apply}
-        disabled={document.body.dataset.lessonActive === "true"}
+        disabled={lessonActive || applying}
       >
-        Update now
+        {applying ? "Updating…" : lessonActive ? "Update after lesson" : "Update now"}
       </button>
     </aside>
   );

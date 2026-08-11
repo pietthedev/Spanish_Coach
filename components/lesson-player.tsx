@@ -33,10 +33,10 @@ export function LessonPlayer({ lesson }: { lesson: Lesson }) {
   );
   const exercise = exercises[step];
   useEffect(() => {
-    document.body.dataset.lessonActive = "true";
+    setLessonActivity(true);
     if (profile) void recordLessonStarted(profile.id, lesson.id);
     return () => {
-      delete document.body.dataset.lessonActive;
+      setLessonActivity(false);
     };
   }, [lesson.id, profile]);
   const next = () => {
@@ -52,7 +52,7 @@ export function LessonPlayer({ lesson }: { lesson: Lesson }) {
       void syncOutbox();
     }
     setComplete(true);
-    delete document.body.dataset.lessonActive;
+    setLessonActivity(false);
   };
   if (complete) return <Completion lesson={lesson} />;
   if (!exercise)
@@ -108,6 +108,14 @@ export function LessonPlayer({ lesson }: { lesson: Lesson }) {
         </button>
       </footer>
     </main>
+  );
+}
+
+function setLessonActivity(active: boolean) {
+  if (active) document.body.dataset.lessonActive = "true";
+  else delete document.body.dataset.lessonActive;
+  window.dispatchEvent(
+    new CustomEvent("rumbo-lesson-activity", { detail: active }),
   );
 }
 
