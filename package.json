@@ -1,0 +1,56 @@
+{
+  "name": "rumbo-spanish",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20.9"
+  },
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "npm run validate:content && next build --webpack",
+    "start": "next start",
+    "lint": "eslint app components content lib scripts tests next.config.ts proxy.ts playwright.config.ts vitest.config.ts --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "validate:content": "node --experimental-strip-types --experimental-transform-types scripts/validate-content.ts",
+    "generate:audio": "node --experimental-strip-types --experimental-transform-types scripts/generate-audio.ts",
+    "security:secrets": "node --experimental-strip-types --experimental-transform-types scripts/check-secrets.ts",
+    "check": "npm run validate:content && npm run typecheck && npm run lint && npm run test && npm run security:secrets"
+  },
+  "dependencies": {
+    "@serwist/next": "9.5.12",
+    "@supabase/ssr": "0.12.4",
+    "@supabase/supabase-js": "^2.57.4",
+    "dexie": "4.4.4",
+    "lucide-react": "^0.468.0",
+    "next": "16.3.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "serwist": "9.5.12",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@tailwindcss/postcss": "^4.1.13",
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^24.3.1",
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "eslint": "^9.35.0",
+    "eslint-config-next": "16.3.0",
+    "fake-indexeddb": "^6.2.2",
+    "jsdom": "^26.1.0",
+    "prettier": "^3.6.2",
+    "prettier-plugin-tailwindcss": "^0.6.14",
+    "tailwindcss": "^4.1.13",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

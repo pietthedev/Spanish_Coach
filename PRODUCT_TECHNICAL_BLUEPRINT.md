@@ -1,9 +1,9 @@
 # Mexico-ready Spanish PWA — product and technical blueprint
 
-**Planning baseline:** 10 August 2026  
-**Course window:** Monday 10 August–Monday 19 October 2026 (71 learning days); departure Tuesday 20 October 2026  
-**Audience:** two English-speaking adult beginners from South Africa  
-**Target:** practical, polite, commonly spoken Mexican Spanish—not fluency  
+**Planning baseline:** 10 August 2026
+**Course window:** Monday 10 August–Monday 19 October 2026 (71 learning days); departure Tuesday 20 October 2026
+**Audience:** two English-speaking adult beginners from South Africa
+**Target:** practical, polite, commonly spoken Mexican Spanish—not fluency
 **Status:** blueprint for approval; no application implementation is included
 
 ---
@@ -708,8 +708,8 @@ The pronunciation aid above is intentionally labelled approximate and must be re
 
 ### Environment variables
 
-Server-only: `ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID_*`, `SUPABASE_SERVICE_ROLE_KEY` (only if necessary), `DATABASE_URL` (only if server SQL is used), rate-limit provider token, analytics ingest secret.  
-Browser-safe by design: `NEXT_PUBLIC_SUPABASE_URL`, Supabase publishable/anon key (protected by RLS, not a secret), `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_CONTENT_VERSION`.  
+Server-only: `ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID_*`, `SUPABASE_SERVICE_ROLE_KEY` (only if necessary), `DATABASE_URL` (only if server SQL is used), rate-limit provider token, analytics ingest secret.
+Browser-safe by design: `NEXT_PUBLIC_SUPABASE_URL`, Supabase publishable/anon key (protected by RLS, not a secret), `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_CONTENT_VERSION`.
 Operational: `VOICE_FEATURE_MODE=batch|realtime|agent`, retention/size/rate caps, Sentry DSN only if privacy-approved. Secrets use distinct preview/production values.
 
 ## 16. Offline and synchronisation strategy
