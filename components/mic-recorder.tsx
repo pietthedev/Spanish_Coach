@@ -7,7 +7,7 @@ import type { EvaluationResult } from "@/lib/evaluation/evaluate";
 
 type State = "idle" | "listening" | "processing" | "done" | "failure";
 
-const MAX_RECORDING_SECONDS = 10;
+const MAX_RECORDING_SECONDS = 5;
 
 export function MicRecorder({
   phrase,
@@ -28,6 +28,16 @@ export function MicRecorder({
   const cutoffTimer = useRef<number | undefined>(undefined);
   const startedAt = useRef<number | undefined>(undefined);
   const cancelled = useRef(false);
+  const reportResult = (result: EvaluationResult) => {
+    onResult(result);
+    window.requestAnimationFrame(() =>
+      window.requestAnimationFrame(() =>
+        document
+          .querySelector<HTMLElement>("[data-speech-feedback]")
+          ?.scrollIntoView({ behavior: "smooth", block: "center" }),
+      ),
+    );
+  };
   const cleanup = () => {
     stream.current?.getTracks().forEach((track) => track.stop());
     stream.current = undefined;
@@ -134,7 +144,7 @@ export function MicRecorder({
   const technical = (message: string) => {
     cleanup();
     setState("failure");
-    onResult({
+    reportResult({
       outcome: "technical-failure",
       label: "The microphone did not catch that",
       message,
@@ -185,7 +195,7 @@ export function MicRecorder({
           result.error || "Speech feedback is temporarily unavailable.",
         );
       setState("done");
-      onResult(result);
+      reportResult(result);
     } catch (error) {
       technical(
         error instanceof DOMException && error.name === "AbortError"
@@ -198,7 +208,7 @@ export function MicRecorder({
     <div className="text-center">
       <p className="text-ink/65 mb-3 text-sm">
         Your recording is sent to ElevenLabs only when online. Rumbo does not
-        save raw voice recordings. Recording stops automatically after 10
+        save raw voice recordings. Recording stops automatically after 5
         seconds.
       </p>
       {state === "listening" ? (
@@ -220,7 +230,7 @@ export function MicRecorder({
             <Square fill="currentColor" />
           </button>
           <span className="w-24 font-mono" aria-live="polite">
-            0:{String(seconds).padStart(2, "0")} / 0:10
+            0:{String(seconds).padStart(2, "0")} / 0:05
           </span>
         </div>
       ) : (

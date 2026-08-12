@@ -302,6 +302,7 @@ function SpeechPractice({ phrase, ui }: { phrase: Phrase; ui: UI }) {
         <div
           className={`mt-6 rounded-2xl p-4 ${["understood", "different-valid"].includes(ui.feedback.outcome) ? "bg-agave/10" : ui.feedback.outcome === "technical-failure" ? "bg-sky/10" : "bg-marigold/20"}`}
           role="status"
+          data-speech-feedback
         >
           <p className="font-black">{ui.feedback.label}</p>
           <p className="mt-1 text-sm">{ui.feedback.message}</p>

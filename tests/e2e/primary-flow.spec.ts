@@ -35,6 +35,10 @@ test("Day 1 completes and survives refresh", async ({ context, page }) => {
     });
     await expect(continueButton).toBeEnabled();
     await continueButton.click();
+    if (step < 8)
+      await expect(
+        page.getByText(`${step + 2}/9`, { exact: true }),
+      ).toBeVisible();
   }
 
   await expect(page.getByText("LESSON COMPLETE")).toBeVisible();
@@ -57,6 +61,19 @@ test("denied microphone offers a technical path and never blocks", async ({
   await expect(
     page.getByText(/permission is off|microphone is unavailable/i),
   ).toBeVisible();
+  await expect(
+    page.getByText(/stops automatically after 5 seconds/i),
+  ).toBeVisible();
+  const feedback = page.getByRole("status");
+  await expect(feedback).toBeVisible();
+  await expect
+    .poll(() =>
+      feedback.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        return box.top >= 0 && box.bottom <= window.innerHeight;
+      }),
+    )
+    .toBe(true);
   await expect(page.getByRole("button", { name: "Continue" })).toBeEnabled();
 });
 

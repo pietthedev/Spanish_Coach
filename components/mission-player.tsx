@@ -50,7 +50,7 @@ export function MissionPlayer() {
         setState(next);
         setFeedback(undefined);
         setShowHint(false);
-      }, 900);
+      }, 2_500);
     } else {
       setState(next);
     }
@@ -185,6 +185,7 @@ export function MissionPlayer() {
               <div
                 className={`mt-4 rounded-xl p-3 ${["understood", "different-valid", "minor-issue"].includes(feedback.outcome) ? "bg-agave/10" : feedback.outcome === "technical-failure" ? "bg-sky/10" : "bg-marigold/20"}`}
                 role="status"
+                data-speech-feedback
               >
                 <p className="font-black">{feedback.label}</p>
                 <p className="mt-1 text-sm">{feedback.message}</p>
