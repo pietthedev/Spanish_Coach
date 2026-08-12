@@ -7,11 +7,15 @@ import type { EvaluationResult } from "@/lib/evaluation/evaluate";
 
 type State = "idle" | "listening" | "processing" | "done" | "failure";
 
+const MAX_RECORDING_SECONDS = 10;
+
 export function MicRecorder({
   phrase,
+  acceptedPhrases = [phrase],
   onResult,
 }: {
   phrase: Phrase;
+  acceptedPhrases?: Phrase[];
   onResult: (result: EvaluationResult) => void;
 }) {
   const [state, setState] = useState<State>("idle");
@@ -21,10 +25,16 @@ export function MicRecorder({
   const stream = useRef<MediaStream | undefined>(undefined);
   const chunks = useRef<Blob[]>([]);
   const timer = useRef<number | undefined>(undefined);
+  const cutoffTimer = useRef<number | undefined>(undefined);
+  const startedAt = useRef<number | undefined>(undefined);
+  const cancelled = useRef(false);
   const cleanup = () => {
     stream.current?.getTracks().forEach((track) => track.stop());
     stream.current = undefined;
     if (timer.current) window.clearInterval(timer.current);
+    if (cutoffTimer.current) window.clearTimeout(cutoffTimer.current);
+    timer.current = undefined;
+    cutoffTimer.current = undefined;
   };
   useEffect(() => cleanup, []);
   const start = async () => {
@@ -47,6 +57,7 @@ export function MicRecorder({
       });
       stream.current = media;
       chunks.current = [];
+      cancelled.current = false;
       const preferred = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
         : "";
@@ -58,18 +69,46 @@ export function MicRecorder({
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size) chunks.current.push(event.data);
       };
-      mediaRecorder.onstop = () =>
-        void processRecording(mediaRecorder.mimeType || "audio/webm");
+      mediaRecorder.onstart = () => {
+        startedAt.current = Date.now();
+      };
+      mediaRecorder.onstop = () => {
+        if (cancelled.current) {
+          cleanup();
+          return;
+        }
+        void processRecording(
+          mediaRecorder.mimeType || "audio/webm",
+          startedAt.current
+            ? Math.min(
+                Date.now() - startedAt.current,
+                MAX_RECORDING_SECONDS * 1000,
+              )
+            : 0,
+        );
+      };
       mediaRecorder.start(250);
       setSeconds(0);
       setState("listening");
       timer.current = window.setInterval(
-        () => setSeconds((value) => value + 1),
-        1000,
+        () =>
+          setSeconds(
+            Math.min(
+              Math.floor(
+                (Date.now() - (startedAt.current ?? Date.now())) / 1000,
+              ),
+              MAX_RECORDING_SECONDS,
+            ),
+          ),
+        250,
       );
-      window.setTimeout(() => {
-        if (mediaRecorder.state === "recording") mediaRecorder.stop();
-      }, 10_000);
+      cutoffTimer.current = window.setTimeout(() => {
+        if (mediaRecorder.state === "recording") {
+          setSeconds(MAX_RECORDING_SECONDS);
+          setState("processing");
+          mediaRecorder.stop();
+        }
+      }, MAX_RECORDING_SECONDS * 1000);
     } catch (error) {
       const name = error instanceof DOMException ? error.name : "";
       technical(
@@ -80,9 +119,13 @@ export function MicRecorder({
     }
   };
   const stop = () => {
-    if (recorder.current?.state === "recording") recorder.current.stop();
+    if (recorder.current?.state === "recording") {
+      setState("processing");
+      recorder.current.stop();
+    }
   };
   const cancel = () => {
+    cancelled.current = true;
     recorder.current?.stop();
     cleanup();
     chunks.current = [];
@@ -98,7 +141,7 @@ export function MicRecorder({
       transcript: "",
     });
   };
-  const processRecording = async (mimeType: string) => {
+  const processRecording = async (mimeType: string, durationMs: number) => {
     cleanup();
     const blob = new Blob(chunks.current, { type: mimeType });
     if (recordingUrl) URL.revokeObjectURL(recordingUrl);
@@ -123,8 +166,9 @@ export function MicRecorder({
         blob,
         `speech.${mimeType.includes("webm") ? "webm" : "m4a"}`,
       );
-      data.set("phraseId", phrase.id);
-      data.set("durationMs", String(seconds * 1000));
+      for (const acceptedPhrase of acceptedPhrases)
+        data.append("phraseId", acceptedPhrase.id);
+      data.set("durationMs", String(durationMs));
       const controller = new AbortController();
       const timeout = window.setTimeout(() => controller.abort(), 15_000);
       const response = await fetch("/api/speech/transcribe", {
@@ -154,7 +198,8 @@ export function MicRecorder({
     <div className="text-center">
       <p className="text-ink/65 mb-3 text-sm">
         Your recording is sent to ElevenLabs only when online. Rumbo does not
-        save raw voice recordings.
+        save raw voice recordings. Recording stops automatically after 10
+        seconds.
       </p>
       {state === "listening" ? (
         <div className="flex items-center justify-center gap-3">
@@ -174,8 +219,8 @@ export function MicRecorder({
           >
             <Square fill="currentColor" />
           </button>
-          <span className="w-12 font-mono" aria-live="polite">
-            0:{String(seconds).padStart(2, "0")}
+          <span className="w-24 font-mono" aria-live="polite">
+            0:{String(seconds).padStart(2, "0")} / 0:10
           </span>
         </div>
       ) : (

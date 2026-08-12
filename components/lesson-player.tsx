@@ -15,6 +15,7 @@ import { useRumbo } from "./app-providers";
 import { AudioButton } from "./audio-button";
 import { MicRecorder } from "./mic-recorder";
 import { phraseById } from "@/content/course";
+import type { Phrase } from "@/content/schema";
 import type { Exercise, Lesson } from "@/content/runtime-types";
 import type { EvaluationResult } from "@/lib/evaluation/evaluate";
 import { completeLesson, recordLessonStarted } from "@/lib/offline/progress";
@@ -58,6 +59,12 @@ export function LessonPlayer({ lesson }: { lesson: Lesson }) {
   if (!exercise)
     return <div className="p-6">Lesson content is unavailable.</div>;
   const progress = Math.round(((step + 1) / exercises.length) * 100);
+  const requiresSpeech = [
+    "present",
+    "retrieve",
+    "listen-choice",
+    "speak",
+  ].includes(exercise.type);
   return (
     <main className="mx-auto flex min-h-dvh max-w-[430px] flex-col px-4 py-4">
       <header className="flex items-center gap-3">
@@ -100,7 +107,8 @@ export function LessonPlayer({ lesson }: { lesson: Lesson }) {
           type="button"
           onClick={next}
           disabled={
-            exercise.type === "listen-choice" && choice !== exercise.answer
+            (exercise.type === "listen-choice" && choice !== exercise.answer) ||
+            (requiresSpeech && !feedback)
           }
           className="tap-target bg-ink w-full rounded-2xl px-5 font-black text-white disabled:cursor-not-allowed disabled:opacity-35"
         >
@@ -158,6 +166,7 @@ function renderExercise(exercise: Exercise, ui: UI) {
             </span>
           </p>
         </details>
+        <SpeechPractice key={exercise.id} phrase={phrase} ui={ui} />
       </div>
     );
   }
@@ -187,6 +196,7 @@ function renderExercise(exercise: Exercise, ui: UI) {
             Reveal phrase
           </button>
         )}
+        <SpeechPractice key={exercise.id} phrase={phrase} ui={ui} />
       </div>
     );
   }
@@ -221,6 +231,9 @@ function renderExercise(exercise: Exercise, ui: UI) {
           <p className="bg-coral/10 mt-4 rounded-xl p-3">
             Almost—listen once more. Mistakes are part of retrieval.
           </p>
+        )}
+        {ui.choice === exercise.answer && (
+          <SpeechPractice key={exercise.id} phrase={phrase} ui={ui} />
         )}
       </div>
     );
@@ -278,6 +291,29 @@ function renderExercise(exercise: Exercise, ui: UI) {
       </div>
     );
   return null;
+}
+
+function SpeechPractice({ phrase, ui }: { phrase: Phrase; ui: UI }) {
+  return (
+    <div className="border-ink/10 mt-7 border-t pt-6">
+      <p className="mb-4 text-center font-black">Now repeat it back</p>
+      <MicRecorder key={phrase.id} phrase={phrase} onResult={ui.setFeedback} />
+      {ui.feedback && (
+        <div
+          className={`mt-6 rounded-2xl p-4 ${["understood", "different-valid"].includes(ui.feedback.outcome) ? "bg-agave/10" : ui.feedback.outcome === "technical-failure" ? "bg-sky/10" : "bg-marigold/20"}`}
+          role="status"
+        >
+          <p className="font-black">{ui.feedback.label}</p>
+          <p className="mt-1 text-sm">{ui.feedback.message}</p>
+          {ui.feedback.transcript && (
+            <p className="text-ink/65 mt-2 text-sm">
+              The service heard: &quot;{ui.feedback.transcript}&quot;
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Completion({ lesson }: { lesson: Lesson }) {

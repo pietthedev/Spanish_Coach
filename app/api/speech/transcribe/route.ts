@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { phraseById } from "@/content/course";
-import { evaluateAnswer } from "@/lib/evaluation/evaluate";
+import type { Phrase } from "@/content/schema";
+import {
+  evaluateAnswer,
+  type EvaluationResult,
+} from "@/lib/evaluation/evaluate";
 import { getServerEnv } from "@/lib/env";
 import { isTrustedSpeechOrigin } from "@/lib/speech/origin";
 import { checkRateLimit } from "@/lib/speech/rate-limit";
@@ -46,9 +50,14 @@ export async function POST(request: Request) {
   const form = await request.formData().catch(() => null);
   if (!form) return safeError("Invalid recording upload.", 400);
   const audio = form.get("audio");
-  const phraseId = form.get("phraseId");
+  const phraseIds = form.getAll("phraseId");
   const durationMs = Number(form.get("durationMs"));
-  if (!(audio instanceof File) || typeof phraseId !== "string")
+  if (
+    !(audio instanceof File) ||
+    phraseIds.length < 1 ||
+    phraseIds.length > 6 ||
+    phraseIds.some((id) => typeof id !== "string")
+  )
     return safeError("Recording and phrase are required.", 400);
   const mime = audio.type.toLocaleLowerCase();
   if (
@@ -59,8 +68,10 @@ export async function POST(request: Request) {
     return safeError("Unsupported or invalid recording.", 413);
   if (!Number.isFinite(durationMs) || durationMs < 0 || durationMs > 11_000)
     return safeError("Recording duration must be under 10 seconds.", 400);
-  const phrase = phraseById.get(phraseId);
-  if (!phrase) return safeError("Unknown course phrase.", 400);
+  const targetPhrases = phraseIds.map((id) => phraseById.get(String(id)));
+  if (targetPhrases.some((phrase) => !phrase))
+    return safeError("Unknown course phrase.", 400);
+  const phrases = targetPhrases as Phrase[];
 
   if (env.VOICE_FEATURE_MODE === "fixture") {
     if (process.env.NODE_ENV === "production")
@@ -71,7 +82,7 @@ export async function POST(request: Request) {
         "Development speech fixture is active; configure ElevenLabs for live feedback.",
         503,
       );
-    return NextResponse.json(evaluateAnswer(fixture, phrase), {
+    return NextResponse.json(evaluateBestAnswer(fixture, phrases), {
       headers: { "Cache-Control": "no-store" },
     });
   }
@@ -86,7 +97,8 @@ export async function POST(request: Request) {
   upstreamForm.set("timestamps_granularity", "none");
   const keyterms = [
     ...new Set(
-      phrase.acceptedAnswers
+      phrases
+        .flatMap((phrase) => phrase.acceptedAnswers)
         .flatMap((answer) => answer.replace(/[¿?¡!.,]/g, "").split(/\s+/))
         .filter((word) => word.length > 3),
     ),
@@ -115,7 +127,7 @@ export async function POST(request: Request) {
     const result = (await response.json()) as { text?: unknown };
     if (typeof result.text !== "string")
       return safeError("Speech feedback returned an invalid response.", 502);
-    return NextResponse.json(evaluateAnswer(result.text, phrase), {
+    return NextResponse.json(evaluateBestAnswer(result.text, phrases), {
       headers: { "Cache-Control": "private, no-store" },
     });
   } catch {
@@ -127,6 +139,21 @@ export async function POST(request: Request) {
     clearTimeout(timeout);
   }
 }
+
+function evaluateBestAnswer(transcript: string, phrases: Phrase[]) {
+  const scores: Record<EvaluationResult["outcome"], number> = {
+    understood: 5,
+    "different-valid": 4,
+    "minor-issue": 3,
+    incomplete: 2,
+    "meaning-error": 1,
+    "technical-failure": 0,
+  };
+  return phrases
+    .map((phrase) => evaluateAnswer(transcript, phrase))
+    .sort((a, b) => scores[b.outcome] - scores[a.outcome])[0]!;
+}
+
 function safeError(error: string, status: number) {
   return NextResponse.json(
     { error },

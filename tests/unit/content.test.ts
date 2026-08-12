@@ -33,4 +33,17 @@ describe("course content", () => {
       ),
     ).toBe(true);
   });
+  it("varies the correct choice position in listening exercises", () => {
+    const listeningExercises = course.lessons
+      .flatMap((lesson) => lesson.exercises)
+      .filter((exercise) => exercise.type === "listen-choice");
+    const answerPositions = listeningExercises.map((exercise) =>
+      exercise.options.indexOf(exercise.answer),
+    );
+
+    expect(answerPositions).toContain(0);
+    expect(answerPositions).toContain(1);
+    expect(answerPositions).toContain(2);
+    expect(answerPositions.every((position) => position >= 0)).toBe(true);
+  });
 });
