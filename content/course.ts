@@ -233,6 +233,18 @@ if (protectedNegation) {
   protectedNegation.criticalTerms = { negation: ["no"] };
 }
 
+function orderedListenChoices(ids: string[], day: number) {
+  const choices = ids.map((id) => phrases.find((p) => p.id === id)!.english);
+  const answer = choices[0]!;
+  const distractors = choices.slice(1);
+  const answerPosition = (day + 2) % choices.length;
+  return [
+    ...distractors.slice(0, answerPosition),
+    answer,
+    ...distractors.slice(answerPosition),
+  ];
+}
+
 const normalLesson = (
   day: number,
   date: string,
@@ -265,7 +277,7 @@ const normalLesson = (
       id: `d${day}.listen`,
       type: "listen-choice" as const,
       phraseId: ids[0]!,
-      options: ids.map((id) => phrases.find((p) => p.id === id)!.english),
+      options: orderedListenChoices(ids, day),
       answer: phrases.find((p) => p.id === ids[0])!.english,
     },
     {
