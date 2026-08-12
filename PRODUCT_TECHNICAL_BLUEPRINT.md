@@ -662,7 +662,7 @@ The pronunciation aid above is intentionally labelled approximate and must be re
 
 ### STT
 
-- Default: upload short recording from browser to `/api/speech/transcribe`; server calls Scribe v2 batch. Fix Spanish, supply phrase vocabulary/keyterms if current API parameters support it, and enforce 10-second/size limits.
+- Default: upload short recording from browser to `/api/speech/transcribe`; server calls Scribe v2 batch. Fix Spanish, supply phrase vocabulary/keyterms if current API parameters support it, and enforce 5-second/size limits for the current short-phrase curriculum.
 - Optional later: direct browser Scribe realtime using a server-created `realtime_scribe` single-use token. ElevenLabs documents that this token expires after 15 minutes and prevents client key exposure ([client-side streaming guide](https://elevenlabs.io/docs/eleven-api/guides/how-to/speech-to-text/realtime/client-side-streaming)).
 - Realtime’s advertised ~150ms is model latency, not South Africa-to-provider end-to-end latency; device/network testing decides whether it improves the short exercise UX.
 

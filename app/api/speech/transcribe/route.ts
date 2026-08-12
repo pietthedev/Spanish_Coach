@@ -66,8 +66,8 @@ export async function POST(request: Request) {
     audio.size < 100
   )
     return safeError("Unsupported or invalid recording.", 413);
-  if (!Number.isFinite(durationMs) || durationMs < 0 || durationMs > 11_000)
-    return safeError("Recording duration must be under 10 seconds.", 400);
+  if (!Number.isFinite(durationMs) || durationMs < 0 || durationMs > 6_000)
+    return safeError("Recording duration must be 5 seconds or less.", 400);
   const targetPhrases = phraseIds.map((id) => phraseById.get(String(id)));
   if (targetPhrases.some((phrase) => !phrase))
     return safeError("Unknown course phrase.", 400);
