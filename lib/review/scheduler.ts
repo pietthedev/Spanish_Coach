@@ -8,12 +8,14 @@ export interface MasteryState {
 }
 export const REVIEW_INTERVALS_DAYS = [0, 1, 3, 7, 14, 30] as const;
 
-function addDays(now: Date, days: number): string {
+export function dueAfterDays(now: Date, days: number): string {
   const next = new Date(now);
   if (days === 0) next.setMinutes(next.getMinutes() + 10);
   else next.setUTCDate(next.getUTCDate() + days);
   return next.toISOString();
 }
+
+const addDays = dueAfterDays;
 
 export function scheduleReview(
   previous: MasteryState | undefined,

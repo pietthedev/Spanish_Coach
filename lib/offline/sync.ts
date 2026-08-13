@@ -1,4 +1,4 @@
-import { getDb, type SyncStatus } from "./db";
+import { getDb, type LocalMastery, type SyncStatus } from "./db";
 
 const statusEvent = (status: SyncStatus) =>
   window.dispatchEvent(new CustomEvent("rumbo-sync", { detail: status }));
@@ -35,27 +35,72 @@ export async function syncOutbox(): Promise<{
         points: number;
         revision: number;
       }>;
+      phraseMastery?: Array<{
+        phrase_id: string;
+        interval_step: number;
+        due_at: string;
+        consecutive_successes: number;
+        independent_successes: number;
+        assisted_successes: number;
+        encounters: number;
+        last_outcome: string | null;
+        last_assistance: string | null;
+        independent_days: string[] | null;
+        updated_at: string;
+      }>;
     };
-    await db.transaction("rw", db.outbox, db.lessonProgress, async () => {
-      await db.outbox.bulkDelete(result.acknowledged);
-      for (const row of result.lessonProgress ?? []) {
-        const local = await db.lessonProgress.get(
-          `${events[0]!.profileId}:${row.lesson_id}`,
-        );
-        const serverWins =
-          row.status === "completed" || local?.status !== "completed";
-        if (serverWins)
-          await db.lessonProgress.put({
-            id: `${events[0]!.profileId}:${row.lesson_id}`,
-            profileId: events[0]!.profileId,
-            lessonId: row.lesson_id,
-            status: row.status,
-            completedAt: row.completed_at ?? undefined,
-            points: row.points,
-            revision: Math.max(local?.revision ?? 0, row.revision),
+    const profileId = events[0]!.profileId;
+    await db.transaction(
+      "rw",
+      db.outbox,
+      db.lessonProgress,
+      db.phraseMastery,
+      async () => {
+        for (const row of result.phraseMastery ?? []) {
+          const id = `${profileId}:${row.phrase_id}`;
+          const local = await db.phraseMastery.get(id);
+          // The device with the most recent attempt wins; a stale cloud row
+          // must never overwrite work done offline since.
+          if (local?.lastReviewedAt && local.lastReviewedAt >= row.updated_at)
+            continue;
+          await db.phraseMastery.put({
+            id,
+            profileId,
+            phraseId: row.phrase_id,
+            intervalStep: row.interval_step,
+            dueAt: row.due_at,
+            consecutiveSuccesses: row.consecutive_successes,
+            independentSuccesses: row.independent_successes,
+            assistedSuccesses: row.assisted_successes,
+            encounters: row.encounters,
+            lastOutcome:
+              (row.last_outcome as LocalMastery["lastOutcome"]) ?? undefined,
+            lastAssistance:
+              (row.last_assistance as LocalMastery["lastAssistance"]) ??
+              undefined,
+            lastReviewedAt: row.updated_at,
+            independentDays: row.independent_days ?? [],
           });
-      }
-    });
+        }
+        await db.outbox.bulkDelete(result.acknowledged);
+        for (const row of result.lessonProgress ?? []) {
+          const id = `${profileId}:${row.lesson_id}`;
+          const local = await db.lessonProgress.get(id);
+          const serverWins =
+            row.status === "completed" || local?.status !== "completed";
+          if (serverWins)
+            await db.lessonProgress.put({
+              id,
+              profileId,
+              lessonId: row.lesson_id,
+              status: row.status,
+              completedAt: row.completed_at ?? undefined,
+              points: row.points,
+              revision: Math.max(local?.revision ?? 0, row.revision),
+            });
+        }
+      },
+    );
     window.dispatchEvent(new CustomEvent("rumbo-progress"));
     statusEvent("synced");
     return { acknowledged: result.acknowledged.length, status: "synced" };

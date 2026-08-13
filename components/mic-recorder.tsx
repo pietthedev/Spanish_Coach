@@ -13,10 +13,14 @@ export function MicRecorder({
   phrase,
   acceptedPhrases = [phrase],
   onResult,
+  onStart,
+  label = "Tap to speak",
 }: {
   phrase: Phrase;
   acceptedPhrases?: Phrase[];
   onResult: (result: EvaluationResult) => void;
+  onStart?: () => void;
+  label?: string;
 }) {
   const [state, setState] = useState<State>("idle");
   const [seconds, setSeconds] = useState(0);
@@ -48,6 +52,7 @@ export function MicRecorder({
   };
   useEffect(() => cleanup, []);
   const start = async () => {
+    onStart?.();
     if (
       !navigator.mediaDevices?.getUserMedia ||
       typeof MediaRecorder === "undefined"
@@ -239,10 +244,10 @@ export function MicRecorder({
           onClick={() => void start()}
           disabled={state === "processing"}
           className="tap-target bg-agave mx-auto flex h-20 min-w-48 items-center justify-center gap-3 rounded-full px-6 font-black text-white disabled:opacity-60"
-          aria-label="Tap to speak"
+          aria-label={label}
         >
           <Mic />
-          {state === "processing" ? "Checking…" : "Tap to speak"}
+          {state === "processing" ? "Checking…" : label}
         </button>
       )}
       {recordingUrl && (

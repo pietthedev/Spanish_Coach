@@ -17,6 +17,18 @@ const eventSchema = z.object({
   clientCreatedAt: z.string().datetime(),
 });
 
+const masterySchema = z.object({
+  intervalStep: z.number().int().min(0).max(5),
+  dueAt: z.string(),
+  consecutiveSuccesses: z.number().int().min(0),
+  independentSuccesses: z.number().int().min(0),
+  assistedSuccesses: z.number().int().min(0),
+  encounters: z.number().int().min(0),
+  lastOutcome: z.string().optional(),
+  lastAssistance: z.string().optional(),
+  independentDays: z.array(z.string()).max(400),
+});
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   if (!supabase)
@@ -65,6 +77,44 @@ export async function POST(request: Request) {
       { status: 502 },
     );
   for (const event of parsed.data.events) {
+    if (event.type === "phrase_reviewed") {
+      const mastery = masterySchema.safeParse(event.payload.mastery);
+      if (!mastery.success) continue;
+      const { data: current } = await supabase
+        .from("phrase_mastery")
+        .select("updated_at")
+        .eq("profile_id", profile.id)
+        .eq("phrase_id", event.entityId)
+        .maybeSingle();
+      // Absolute state, so replaying an event is idempotent. Older events are
+      // ignored so an out-of-order delivery cannot regress mastery.
+      if (current && current.updated_at > event.clientCreatedAt) continue;
+      const { error: masteryError } = await supabase
+        .from("phrase_mastery")
+        .upsert(
+          {
+            profile_id: profile.id,
+            phrase_id: event.entityId,
+            interval_step: mastery.data.intervalStep,
+            due_at: mastery.data.dueAt,
+            consecutive_successes: mastery.data.consecutiveSuccesses,
+            independent_successes: mastery.data.independentSuccesses,
+            assisted_successes: mastery.data.assistedSuccesses,
+            encounters: mastery.data.encounters,
+            last_outcome: mastery.data.lastOutcome ?? null,
+            last_assistance: mastery.data.lastAssistance ?? null,
+            independent_days: mastery.data.independentDays,
+            updated_at: event.clientCreatedAt,
+          },
+          { onConflict: "profile_id,phrase_id" },
+        );
+      if (masteryError)
+        return NextResponse.json(
+          { error: "Progress projection is temporarily unavailable." },
+          { status: 502 },
+        );
+      continue;
+    }
     if (event.type !== "lesson_started" && event.type !== "lesson_completed")
       continue;
     const { data: existing } = await supabase
@@ -105,8 +155,14 @@ export async function POST(request: Request) {
     .from("lesson_progress")
     .select("lesson_id, status, completed_at, points, revision")
     .order("started_at");
+  const { data: phraseMastery } = await supabase
+    .from("phrase_mastery")
+    .select(
+      "phrase_id, interval_step, due_at, consecutive_successes, independent_successes, assisted_successes, encounters, last_outcome, last_assistance, independent_days, updated_at",
+    );
   return NextResponse.json({
     acknowledged: parsed.data.events.map((event) => event.id),
     lessonProgress: lessonProgress ?? [],
+    phraseMastery: phraseMastery ?? [],
   });
 }

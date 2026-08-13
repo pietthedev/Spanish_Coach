@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from "dexie";
+import type { PhraseMastery } from "@/lib/learning/types";
 
 export type SyncStatus = "local" | "syncing" | "synced" | "error";
 export interface LocalLessonProgress {
@@ -10,14 +11,10 @@ export interface LocalLessonProgress {
   points: number;
   revision: number;
 }
-export interface LocalMastery {
+export interface LocalMastery extends PhraseMastery {
   id: string;
   profileId: string;
   phraseId: string;
-  intervalStep: number;
-  dueAt: string;
-  consecutiveSuccesses: number;
-  lastOutcome: string;
 }
 export interface OutboxEvent {
   id: string;
@@ -53,6 +50,28 @@ export class RumboDatabase extends Dexie {
       outbox: "id, profileId, nextAttemptAt, clientCreatedAt",
       settings: "key",
     });
+    // Learning Engine V2 adds retrieval-quality evidence alongside the
+    // interval. Existing records keep their schedule and start with no
+    // independent-retrieval history, which reads as "familiar".
+    this.version(2)
+      .stores({
+        lessonProgress:
+          "id, [profileId+lessonId], profileId, status, completedAt",
+        phraseMastery: "id, [profileId+phraseId], profileId, dueAt",
+        outbox: "id, profileId, nextAttemptAt, clientCreatedAt",
+        settings: "key",
+      })
+      .upgrade((transaction) =>
+        transaction
+          .table<LocalMastery>("phraseMastery")
+          .toCollection()
+          .modify((record) => {
+            record.independentSuccesses ??= 0;
+            record.assistedSuccesses ??= 0;
+            record.encounters ??= Math.max(1, record.consecutiveSuccesses ?? 0);
+            record.independentDays ??= [];
+          }),
+      );
   }
 }
 
