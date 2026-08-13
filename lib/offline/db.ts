@@ -24,7 +24,8 @@ export interface OutboxEvent {
     | "lesson_started"
     | "lesson_completed"
     | "phrase_reviewed"
-    | "mission_completed";
+    | "mission_completed"
+    | "drive_session_completed";
   entityId: string;
   payload: Record<string, unknown>;
   clientCreatedAt: string;

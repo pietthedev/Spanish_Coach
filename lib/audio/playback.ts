@@ -41,6 +41,14 @@ export function speakEnglish(text: string): Promise<void> {
   return speak(text, "en-US", 0.95);
 }
 
+/**
+ * For Spanish with no recorded asset, such as a conversation host line.
+ * Recorded phrase audio remains authoritative wherever it exists.
+ */
+export function speakSpanish(text: string, slow = false): Promise<void> {
+  return speak(text, "es-MX", slow ? 0.75 : 0.92);
+}
+
 function speak(text: string, lang: string, rate: number): Promise<void> {
   if (typeof window === "undefined" || !("speechSynthesis" in window))
     return Promise.resolve();

@@ -4,6 +4,7 @@ import { Mic, Square, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Phrase } from "@/content/schema";
 import type { EvaluationResult } from "@/lib/evaluation/evaluate";
+import { transcribeAttempt } from "@/lib/speech/transcribe-client";
 
 type State = "idle" | "listening" | "processing" | "done" | "failure";
 
@@ -174,40 +175,18 @@ export function MicRecorder({
       return;
     }
     setState("processing");
-    try {
-      const data = new FormData();
-      data.set(
-        "audio",
-        blob,
-        `speech.${mimeType.includes("webm") ? "webm" : "m4a"}`,
-      );
-      for (const acceptedPhrase of acceptedPhrases)
-        data.append("phraseId", acceptedPhrase.id);
-      data.set("durationMs", String(durationMs));
-      const controller = new AbortController();
-      const timeout = window.setTimeout(() => controller.abort(), 15_000);
-      const response = await fetch("/api/speech/transcribe", {
-        method: "POST",
-        body: data,
-        signal: controller.signal,
-      });
-      window.clearTimeout(timeout);
-      const result = (await response.json()) as EvaluationResult & {
-        error?: string;
-      };
-      if (!response.ok)
-        throw new Error(
-          result.error || "Speech feedback is temporarily unavailable.",
-        );
-      setState("done");
-      reportResult(result);
-    } catch (error) {
-      technical(
-        error instanceof DOMException && error.name === "AbortError"
-          ? "Speech feedback took too long. Try again or continue."
-          : "Speech feedback is temporarily unavailable. Your learning progress is not affected.",
-      );
+    const result = await transcribeAttempt({
+      blob,
+      mimeType,
+      phraseIds: acceptedPhrases.map((item) => item.id),
+      durationMs,
+    });
+    if (result.outcome === "technical-failure") {
+      technical(result.message);
+      return;
     }
+    setState("done");
+    reportResult(result);
   };
   return (
     <div className="text-center">

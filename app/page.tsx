@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, CalendarDays, Flame, Plane, WifiOff } from "lucide-react";
+import { ArrowRight, CalendarDays, Car, Flame, Plane, WifiOff } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { useRumbo } from "@/components/app-providers";
@@ -126,8 +126,23 @@ export default function TodayPage() {
         <Metric value={`${completed.length}/7`} label="Slice" />
       </div>
       <Link
+        href="/drive"
+        className="tap-target bg-ink/95 mt-5 flex items-center justify-between rounded-2xl px-4 py-3 text-white"
+      >
+        <span className="flex items-center gap-3">
+          <Car size={22} aria-hidden="true" />
+          <span>
+            <span className="block font-black">Drive Mode</span>
+            <span className="block text-xs text-white/65">
+              Learn hands-free on your commute
+            </span>
+          </span>
+        </span>
+        <ArrowRight size={18} />
+      </Link>
+      <Link
         href="/travel-pack"
-        className="tap-target border-ink/15 mt-5 flex items-center justify-between rounded-2xl border bg-white px-4 font-bold"
+        className="tap-target border-ink/15 mt-3 flex items-center justify-between rounded-2xl border bg-white px-4 font-bold"
       >
         <span>Days 1–7 offline pack</span>
         <ArrowRight size={18} />

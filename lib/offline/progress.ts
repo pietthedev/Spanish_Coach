@@ -1,3 +1,4 @@
+import type { DriveSessionSummary } from "@/lib/drive/types";
 import { applyAttempt, memoryBand } from "@/lib/learning/mastery";
 import type { PhraseMastery, RetrievalAttempt } from "@/lib/learning/types";
 import { getDb, getDeviceId, type LocalMastery, type OutboxEvent } from "./db";
@@ -143,6 +144,33 @@ export async function completeLesson(
     });
     await db.outbox.put(event);
   });
+  window.dispatchEvent(new CustomEvent("rumbo-progress"));
+  return event.id;
+}
+
+/**
+ * Drive sessions ride the existing outbox rather than a parallel analytics
+ * store. Phrase mastery is written by recordPhraseAttempt as usual; this only
+ * captures the shape of the drive itself.
+ */
+export async function recordDriveSession(
+  profileId: string,
+  summary: DriveSessionSummary,
+  now = new Date(),
+) {
+  const db = getDb();
+  const event: OutboxEvent = {
+    id: crypto.randomUUID(),
+    profileId,
+    deviceId: getDeviceId(),
+    type: "drive_session_completed",
+    entityId: `drive.${summary.duration}`,
+    payload: { ...summary },
+    clientCreatedAt: now.toISOString(),
+    attempts: 0,
+    nextAttemptAt: now.toISOString(),
+  };
+  await db.outbox.put(event);
   window.dispatchEvent(new CustomEvent("rumbo-progress"));
   return event.id;
 }

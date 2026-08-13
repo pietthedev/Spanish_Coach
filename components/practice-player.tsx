@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import {
+  Car,
   ChevronLeft,
+  ChevronRight,
   Headphones,
   Mic,
   Repeat2,
@@ -187,6 +189,22 @@ export function PracticePlayer() {
           Quick practice · 3 phrases
         </button>
       </div>
+
+      <Link
+        href="/drive"
+        className="tap-target bg-ink mt-5 flex items-center justify-between rounded-2xl px-4 py-3 text-white"
+      >
+        <span className="flex items-center gap-3">
+          <Car size={22} aria-hidden="true" />
+          <span>
+            <span className="block font-black">Drive Mode</span>
+            <span className="block text-xs text-white/65">
+              Hands-free practice for your commute
+            </span>
+          </span>
+        </span>
+        <ChevronRight size={18} />
+      </Link>
 
       <div className="mt-5 grid grid-cols-2 gap-3">
         <button

@@ -11,6 +11,7 @@ const eventSchema = z.object({
     "lesson_completed",
     "phrase_reviewed",
     "mission_completed",
+    "drive_session_completed",
   ]),
   entityId: z.string().min(1),
   payload: z.record(z.string(), z.unknown()),
